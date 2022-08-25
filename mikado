@@ -1,0 +1,179 @@
+#!/usr/bin/env perl
+use 5.032;
+use warnings;
+use utf8;
+use experimental 'signatures';
+use List::Util 'first';
+use File::Temp;
+use Getopt::Long;
+
+sub read_graph_from_file ($file) {
+    open my $fh, '<:utf8', $file or die "Can't open $file for reading: $!";
+    my $graph = {};
+    my @stack;
+
+    my $pos = 0;
+    while (<$fh>) {
+        chomp;
+        next if /\A\s*(#|\z)/;    # strip comments and white lines
+        my $prev;
+        my @parts = split /->/;
+        $pos = 0;
+
+        # if the line starts with an arrow,
+        # try to find a parent in the stack for the first item
+        if ( $parts[0] =~ /\A *\z/ ) {
+            $pos = length shift @parts;
+            $prev =
+              first { $_->{start} <= $pos <= $_->{end} } reverse @stack;
+            die "Can't find the previous node for line $.:\n$_" unless $prev;
+        }
+
+        # compute each node and add it to the graph
+        while ( my $name = shift @parts ) {
+            my ($indent) = $name =~ /\A(\s*)/g;
+            my $node = {
+                start   => $pos + length($indent),
+                end     => $pos += length($name) + 2,
+                prereqs => []
+            };
+            $node->{done} = $name =~ s/\s*[✓+X]\s*\z//;
+            $name =~ s/\A\s*|\s*\z//g;
+            $node->{name} = $name;
+            $graph->{$name} = $node;
+            if ($prev) {
+                push $graph->{ $prev->{name} }{prereqs}->@*, $node->{name};
+            }
+            push @stack, $prev = $node;
+        }
+    }
+    close $fh;
+    return $graph;
+}
+
+sub graph_as_dot ( $graph, $option ) {
+    my @nodes = sort { $a->{name} cmp $b->{name} } values %$graph;
+
+    # header
+    my $dot = <<~"DOT";
+    digraph {
+        rankdir=$option->{rankdir}
+
+    DOT
+
+    # process all edges
+    my %edges = ( done => [], todo => [] );
+    for my $node ( @nodes ) {
+        for my $prereq ( $node->{prereqs}->@* ) {
+            push $edges{ $graph->{$prereq}{done} ? 'done' : 'todo' }->@*,
+              qq{"$node->{name}" -> "$prereq"};
+        }
+    }
+
+    # todo edges
+    $dot .= "    $_\n" for $edges{todo}->@*;
+
+    # done nodes
+    my @done = grep $_->{done}, @nodes;
+    $dot .= <<~ "DOT";
+
+        {   // done nodes
+            node [color=grey fontcolor=grey]
+    ${ \join "\n", map qq{        "$_->{name}"}, @done }
+        }
+
+    DOT
+
+    # done edges
+    $dot .= <<~ "DOT";
+        {   // edges to done nodes
+            edge [color=grey]
+    ${ \join "\n", map "        $_", $edges{done}->@* }
+        }
+
+    DOT
+
+    # footer
+    return $dot . "}\n";
+}
+
+# main
+my %option = ( graphviz => 1, output => 'png', rankdir => 'LR' );
+GetOptions( \%option, 'graphviz|viz|exec!', 'output=s', 'rankdir=s' ) or die;
+
+for my $file (@ARGV) {
+    $file =~ /\A(.*)\.[.]+\z/;
+    my $dot = graph_as_dot( read_graph_from_file($file), \%option );
+    if ( $option{graphviz} ) {
+        $file =~ /\A(.*)(?:\.[^.]*)\z/;
+        my $base = $1 // $file;
+        my $temp = File::Temp->new;
+        $temp->print($dot);
+        my @cmd = (
+            'dot', "-T$option{output}", "-o$base.$option{output}",
+            $temp->filename
+        );
+        system @cmd;
+    }
+    else {
+        print $dot;
+    }
+}
+
+__END__
+
+=head1 NAME
+
+mikado - Turn a basic Mikado method format into a Graphviz graph
+
+=head1 SYNOPSIS
+
+  mikado [options] [files]
+
+=head1 OPTIONS
+
+  --no-graphviz               Print the Graphviz input file instead
+                              of running dot
+
+  --output <format>           Set output format (default: png)
+  --rankdir <direction>       Set graph direction (default: LR)
+
+=head1 DESCRIPTION
+
+B<mikado> turns a simple input format into a Graphviz-generated graph
+image, to help work using the L<Mikado Method|https://mikadomethod.info/>.
+
+Example input:
+
+    A -> B -> C
+           -> D✓
+
+In this simple diagram, the goal C<A> depends on node C<B> only,
+and C<B> depends on both C<C> and C<D>.
+
+    digraph {
+        rankdir=LR
+    
+        "A" -> "B"
+        "B" -> "C"
+    
+        {   // done nodes
+            node [color=grey fontcolor=grey]
+            "D"
+        }
+    
+        {   // edges to done nodes
+            edge [color=grey]
+            "B" -> "D"
+        }
+    
+    }
+
+Note that the C<D> node is marked as "done". This node and
+the links to it will be grayed out in the generated graph.
+
+=head1 AUTHOR
+
+Philippe Bruhat (BooK), C<< <book@cpan.org> >>.
+
+=cut
