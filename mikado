@@ -12,6 +12,7 @@ sub read_graph_from_file ($file) {
     my $graph = {};
     my @stack;
 
+    my $inc = 0;
     my $pos = 0;
     while (<$fh>) {
         chomp;
@@ -35,7 +36,8 @@ sub read_graph_from_file ($file) {
             my $node = {
                 start   => $pos + length($indent),
                 end     => $pos += length($name) + 2,
-                prereqs => []
+                prereqs => [],
+                order   => $inc++,
             };
             $node->{done} = $name =~ s/\s*[✓+X]\s*\z//;
             $name =~ s/\A\s*|\s*\z//g;
@@ -53,8 +55,18 @@ sub read_graph_from_file ($file) {
 }
 
 sub graph_as_dot ( $graph, $option ) {
-    my @nodes = sort { $a->{name} cmp $b->{name} } values %$graph;
+    my @nodes = sort { $a->{order} cmp $b->{order} } values %$graph;
     my $dimmed = 'grey60';
+
+    # mark nodes with all prereqs done as done
+    if ( $option->{auto_done} ) {
+        for my $node ( reverse @nodes ) {
+            next if $node->{done} || !$node->{prereqs}->@*;
+            my $done = 1;
+            $graph->{$_}{done} or $done = 0 for $node->{prereqs}->@*;
+            $node->{done} = $done;
+        }
+    }
 
     # header
     my $dot = <<~"DOT";
@@ -100,8 +112,18 @@ sub graph_as_dot ( $graph, $option ) {
 }
 
 # main
-my %option = ( graphviz => 1, output => 'png', rankdir => 'LR' );
-GetOptions( \%option, 'graphviz|viz|exec!', 'output=s', 'rankdir=s' ) or die;
+my %option = (
+    graphviz => 1,        # generate the image by default
+    output   => 'png',    # default format: PNG
+    rankdir  => 'LR',     # default direction: left-to-right
+);
+GetOptions(
+    \%option,
+    'graphviz|viz|exec!',    # negate to dump the Graphviz code
+    'output=s',              # output format
+    'rankdir=s',             # graph direction
+    'auto_done|auto-done',   # mark nodes with all prereqs done as done
+) or die;
 
 for my $file (@ARGV) {
     $file =~ /\A(.*)\.[.]+\z/;
@@ -136,6 +158,7 @@ mikado - Turn a basic Mikado method format into a Graphviz graph
 
   --no-graphviz               Print the Graphviz input file instead
                               of running dot
+  --auto-done                 Mark nodes with all prereqs done as done
 
   --output <format>           Set output format (default: png)
   --rankdir <direction>       Set graph direction (default: LR)
