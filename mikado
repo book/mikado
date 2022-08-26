@@ -54,6 +54,7 @@ sub read_graph_from_file ($file) {
 
 sub graph_as_dot ( $graph, $option ) {
     my @nodes = sort { $a->{name} cmp $b->{name} } values %$graph;
+    my $dimmed = 'grey60';
 
     # header
     my $dot = <<~"DOT";
@@ -79,7 +80,7 @@ sub graph_as_dot ( $graph, $option ) {
     $dot .= <<~ "DOT";
 
         {   // done nodes
-            node [color=grey fontcolor=grey]
+            node [color=$dimmed fontcolor=$dimmed]
     ${ \join "\n", map qq{        "$_->{name}"}, @done }
         }
 
@@ -88,7 +89,7 @@ sub graph_as_dot ( $graph, $option ) {
     # done edges
     $dot .= <<~ "DOT";
         {   // edges to done nodes
-            edge [color=grey]
+            edge [color=$dimmed]
     ${ \join "\n", map "        $_", $edges{done}->@* }
         }
 
@@ -159,12 +160,12 @@ and C<B> depends on both C<C> and C<D>.
         "B" -> "C"
     
         {   // done nodes
-            node [color=grey fontcolor=grey]
+            node [color=grey60 fontcolor=grey60]
             "D"
         }
     
         {   // edges to done nodes
-            edge [color=grey]
+            edge [color=grey60]
             "B" -> "D"
         }
     
