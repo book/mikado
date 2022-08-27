@@ -38,6 +38,7 @@ sub read_graph_from_file ($file) {
                 end     => $pos += length($name) + 2,
                 prereqs => [],
                 order   => $inc++,
+                root    => !$prev,
             };
             $node->{done} = $name =~ s/\s*[✓+X]\s*\z//;
             $name =~ s/\A\s*|\s*\z//g;
