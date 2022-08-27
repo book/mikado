@@ -56,10 +56,21 @@ sub read_graph_from_file ($file) {
 }
 
 sub graph_as_dot ( $graph, $option ) {
-    my @nodes = sort { $a->{order} cmp $b->{order} } values %$graph;
-    my $dimmed = 'grey60';
+    
+    # sort nodes starting from the leaves
+    my @nodes;
+    {
+        my %seen;
+        my @queue = grep $_->{root}, values %$graph;
+        while ( my $node = shift @queue ) {
+            next if $seen{ $node->{name} }++;
+            push @queue, map $graph->{$_}, $node->{prereqs}->@*;
+            push @nodes, $graph->{ $node->{name} };
+        }
+    }
 
     # mark nodes with all prereqs done as done
+    # (starting from the leaves)
     if ( $option->{auto_done} ) {
         for my $node ( reverse @nodes ) {
             next if $node->{done} || !$node->{prereqs}->@*;
@@ -86,6 +97,7 @@ sub graph_as_dot ( $graph, $option ) {
     }
 
     # todo edges
+    my $dimmed = 'grey60';
     $dot .= "    $_\n" for $edges{todo}->@*;
 
     # done nodes
