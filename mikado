@@ -81,44 +81,23 @@ sub graph_as_dot ( $graph, $option ) {
     }
 
     # header
-    my $dot = <<~"DOT";
-    digraph {
-        rankdir=$option->{rankdir}
+    my $dot = "digraph {\n    rankdir=$option->{rankdir}\n";
 
-    DOT
-
-    # process all edges
-    my %edges = ( done => [], todo => [] );
-    for my $node ( @nodes ) {
+    # process all nodes
+    my $dimmed = 'grey60';
+    for my $node (@nodes) {
+        if ( $node->{root} || $node->{done} ) {
+            my @attr;    # node attributes
+            push @attr, "style=bold" if $node->{root};
+            push @attr, "color=$dimmed", "fontcolor=$dimmed" if $node->{done};
+            $dot .= qq{    "$node->{name}" [${\join ',', @attr }]\n};
+        }
         for my $prereq ( $node->{prereqs}->@* ) {
-            push $edges{ $graph->{$prereq}{done} ? 'done' : 'todo' }->@*,
-              qq{"$node->{name}" -> "$prereq"};
+            $dot .= qq{    "$node->{name}" -> "$prereq"};
+            $dot .= " [color=$dimmed]" if $graph->{$prereq}{done};
+            $dot .= "\n";
         }
     }
-
-    # todo edges
-    my $dimmed = 'grey60';
-    $dot .= "    $_\n" for $edges{todo}->@*;
-
-    # done nodes
-    my @done = grep $_->{done}, @nodes;
-    $dot .= <<~ "DOT";
-
-        {   // done nodes
-            node [color=$dimmed fontcolor=$dimmed]
-    ${ \join "\n", map qq{        "$_->{name}"}, @done }
-        }
-
-    DOT
-
-    # done edges
-    $dot .= <<~ "DOT";
-        {   // edges to done nodes
-            edge [color=$dimmed]
-    ${ \join "\n", map "        $_", $edges{done}->@* }
-        }
-
-    DOT
 
     # footer
     return $dot . "}\n";
