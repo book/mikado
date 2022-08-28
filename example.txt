@@ -1,0 +1,8 @@
+Mikado\nGoal
+    -> Prerequisite: immediate\nsolution to errors when implementing\nMikado Goal
+        -> Add more\nprerequisites...
+            -> Prerequisite can\nhave common\ndependencies ✓
+        -> ...linked to\nthe previous
+            -> Prerequisite can\nhave common\ndependencies ✓
+        -> There can be lots\nof such dependent\nchanges needed
+    -> The Mikado Goal\ncan have several direct\nprerequisites
