@@ -87,12 +87,14 @@ sub graph_as_dot ( $graph, $option ) {
     my $dimmed = 'grey60';
     for my $node (@nodes) {
         if ( $node->{root} || $node->{done} ) {
+            next if $option->{hide_done} && $node->{done};
             my @attr;    # node attributes
             push @attr, "style=bold" if $node->{root};
             push @attr, "color=$dimmed", "fontcolor=$dimmed" if $node->{done};
             $dot .= qq{    "$node->{name}" [${\join ',', @attr }]\n};
         }
         for my $prereq ( $node->{prereqs}->@* ) {
+            next if $option->{hide_done} && $graph->{$prereq}{done};
             $dot .= qq{    "$node->{name}" -> "$prereq"};
             $dot .= " [color=$dimmed]" if $graph->{$prereq}{done};
             $dot .= "\n";
@@ -115,6 +117,7 @@ GetOptions(
     'output=s',              # output format
     'rankdir=s',             # graph direction
     'auto_done|auto-done',   # mark nodes with all prereqs done as done
+    'hide_done|hide-done',   # hide done nodes
 ) or die;
 
 for my $file (@ARGV) {
@@ -151,6 +154,7 @@ mikado - Turn a basic Mikado method format into a Graphviz graph
   --no-graphviz               Print the Graphviz input file instead
                               of running dot
   --auto-done                 Mark nodes with all prereqs done as done
+  --hide-done                 Hide all nodes marked done
 
   --output <format>           Set output format (default: png)
   --rankdir <direction>       Set graph direction (default: LR)
