@@ -109,7 +109,7 @@ sub graph_as_dot ( $graph, $option ) {
 my %option = (
     graphviz => 1,        # generate the image by default
     output   => 'png',    # default format: PNG
-    rankdir  => 'LR',     # default direction: left-to-right
+    rankdir  => 'RL',     # default direction: right-to-left
 );
 GetOptions(
     \%option,
@@ -157,7 +157,7 @@ mikado - Turn a basic Mikado method format into a Graphviz graph
   --hide-done                 Hide all nodes marked done
 
   --output <format>           Set output format (default: png)
-  --rankdir <direction>       Set graph direction (default: LR)
+  --rankdir <direction>       Set graph direction (default: RL)
 
 =head1 DESCRIPTION
 
@@ -173,7 +173,7 @@ In this simple diagram, the goal C<A> depends on node C<B> only,
 and C<B> depends on both C<C> and C<D>.
 
     digraph {
-        rankdir=LR
+        rankdir=RL
     
         "A" -> "B"
         "B" -> "C"
