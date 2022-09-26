@@ -24,7 +24,11 @@ And the result is good enough:
 
 (This image was obtained with the command: `mikado --rankdir BT example.txt`.)
 
-# Dependencies
+# Installation and Dependencies
+
+To install this program, simply [download the latest
+version](https://raw.githubusercontent.com/book/mikado/master/mikado),
+and make it executable.
 
 Only [Perl](https://www.perl.org/) and [Graphviz](https://graphviz.org/)
 are needed to run `mikado`.
