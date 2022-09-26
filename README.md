@@ -29,6 +29,8 @@ And the result is good enough:
 Only [Perl](https://www.perl.org/) and [Graphviz](https://graphviz.org/)
 are needed to run `mikado`.
 
+The online help is obtained by running `mikado --help`.
+
 # License
 
 This program is free software; you can redistribute it and/or modify it
