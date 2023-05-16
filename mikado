@@ -204,6 +204,26 @@ and C<B> depends on both C<C> and C<D>.
 Note that the C<D> node is marked as "done". This node and
 the links to it will be grayed out in the generated graph.
 
+Instead of the Unicode character C<✓>, one can also use
+C<+> or C<X> at the end of a node to mark it done.
+
+=head1 FORMAT DETAILS
+
+Nodes are strings of text. Embedded C<\n> will be turned
+into newlines in the Graphviz image.
+
+The dependency relation between nodes is inferred from the position
+of the C<< -> >> arrows. An arrow between two nodes indicates
+that the node on the left depends on the node on the right.
+
+When the arrow is the first item on the line, the indentation
+is used to determine the "parent" node. This makes it possible
+to avoid duplicating nodes in the input file.
+
+In Mikado graphs, most nodes have multiple dependencies, and
+are more rarely a dependencies for multiple nodes. When the
+it happens, the current solution is duplicate the node text.
+
 =head1 AUTHOR
 
 Philippe Bruhat (BooK) <book@cpan.org>
