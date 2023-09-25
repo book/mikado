@@ -8,7 +8,7 @@ use File::Temp;
 use Getopt::Long;
 use Pod::Usage;
 
-sub read_graph_from_file ($file) {
+sub read_graph_from_file ($file, $option) {
     open my $fh, '<:utf8', $file or die "Can't open $file for reading: $!";
     my $graph = {};
     my @stack;
@@ -38,7 +38,8 @@ sub read_graph_from_file ($file) {
                 end     => $pos += length($name),
             };
             $pos += 2;    # arrow
-            my $done = $name =~ s/\s*[✓+X]\s*\z//;
+            my $done = $name =~ s/\s*(?:✓|\s[+X])\s*\z//;
+            $done = '' if $option->{ignore_done};
             $name =~ s/\A\s*|\s*\z//g;
             $name =~ s/"/\\"/g;
             $node->{name} = $name;
@@ -117,19 +118,20 @@ my %option = (
 );
 GetOptions(
     \%option,
-    'graphviz|viz|exec!',    # negate to dump the Graphviz code
-    'output=s',              # output format
-    'rankdir=s',             # graph direction
-    'auto_done|auto-done',   # mark nodes with all prereqs done as done
-    'hide_done|hide-done',   # hide done nodes
-    'help',                  # show the online help
+    'graphviz|viz|exec!',      # negate to dump the Graphviz code
+    'output=s',                # output format
+    'rankdir=s',               # graph direction
+    'auto_done|auto-done',     # mark nodes with all prereqs done as done
+    'hide_done|hide-done',     # hide done nodes
+    'ignore_done|ignore-done', # ignore done information
+    'help',                    # show the online help
 ) or pod2usage(1);
 
 pod2usage( -verbose => 2 ) if $option{help};
 
 for my $file (@ARGV) {
     $file =~ /\A(.*)\.[.]+\z/;
-    my $dot = graph_as_dot( read_graph_from_file($file), \%option );
+    my $dot = graph_as_dot( read_graph_from_file( $file, \%option ), \%option );
     if ( $option{graphviz} ) {
         $file =~ /\A(.*)(?:\.[^.]*)\z/;
         my $base = $1 // $file;
@@ -164,6 +166,7 @@ mikado - Turn a basic Mikado method format into a Graphviz graph
                               of running dot
   --auto-done                 Mark nodes with all prereqs done as done
   --hide-done                 Hide all nodes marked done
+  --ignore-done               Ignore "done" information (cancels the options above)
 
   --output <format>           Set output format (default: png)
   --rankdir <direction>       Set graph direction (default: RL)
